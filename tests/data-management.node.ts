@@ -222,6 +222,7 @@ test("data management keeps template scope and image deletion references consist
         name: "备用线路",
         enabled: true,
         priority: 2,
+        apiFormat: "openrouter",
         baseUrl: "https://backup.example.test/v1/",
         model: "gpt-image-2-backup",
         apiKey: "sk-backup",
@@ -238,6 +239,7 @@ test("data management keeps template scope and image deletion references consist
     ]);
     assert.equal(savedChannels[0].id, "main_channel");
     assert.equal(savedChannels[0].baseUrl, "https://main.example.test/v1");
+    assert.equal(savedChannels[1].apiFormat, "openrouter");
     assert.equal(getRuntimeImageSettings().imageModel, "gpt-image-2");
 
     const publicChannels = getPublicAdminSettings().imageProviderChannels;
@@ -249,12 +251,14 @@ test("data management keeps template scope and image deletion references consist
         name: "主线路",
         enabled: true,
         priority: 1,
+        apiFormat: "openrouter",
         baseUrl: "https://main.example.test/v1",
         model: "gpt-image-2",
         apiKey: null,
       },
     ]);
     assert.equal(preservedChannels[0].apiKey, "sk-main");
+    assert.equal(preservedChannels[0].apiFormat, "openrouter");
     assert.throws(
       () =>
         saveImageProviderChannels([

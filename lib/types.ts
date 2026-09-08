@@ -41,11 +41,15 @@ export type UserStatus = (typeof userStatuses)[number];
 export const imageProviders = ["sub2api", "openai_oauth"] as const;
 export type ImageProvider = (typeof imageProviders)[number];
 
+export const imageApiFormats = ["openai_compatible", "openrouter"] as const;
+export type ImageApiFormat = (typeof imageApiFormats)[number];
+
 export interface ImageProviderChannel {
   id: string;
   name: string;
   enabled: boolean;
   priority: number;
+  apiFormat: ImageApiFormat;
   baseUrl: string;
   model: string;
   apiKey: string;
@@ -58,6 +62,7 @@ export interface PublicImageProviderChannel {
   name: string;
   enabled: boolean;
   priority: number;
+  apiFormat: ImageApiFormat;
   baseUrl: string;
   model: string;
   apiKeyConfigured: boolean;

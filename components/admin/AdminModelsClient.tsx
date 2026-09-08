@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import clsx from "clsx";
-import type { ImageProvider, PublicAdminSettings, PublicImageProviderChannel } from "@/lib/types";
+import type { ImageApiFormat, ImageProvider, PublicAdminSettings, PublicImageProviderChannel } from "@/lib/types";
 import { imageConcurrencyLimits } from "@/lib/types";
 import { apiJson } from "@/components/client-api";
 import { AdminShell } from "./AdminShell";
@@ -42,6 +42,7 @@ export function AdminModelsClient() {
               name: "默认 API Key 渠道",
               enabled: true,
               priority: 1,
+              apiFormat: "openai_compatible",
               baseUrl: payload.settings.sub2apiBaseUrl,
               model: payload.settings.imageModel,
               apiKeyConfigured: payload.settings.sub2apiApiKeyConfigured,
@@ -73,6 +74,7 @@ export function AdminModelsClient() {
         name: `备用渠道 ${current.length + 1}`,
         enabled: true,
         priority: current.length + 1,
+        apiFormat: current[0]?.apiFormat || "openai_compatible",
         baseUrl: current[0]?.baseUrl || "https://api.example.com/v1",
         model: current[0]?.model || "gpt-image-2",
         apiKeyConfigured: false,
@@ -106,6 +108,7 @@ export function AdminModelsClient() {
                   name: channel.name,
                   enabled: channel.enabled,
                   priority: channel.priority,
+                  apiFormat: channel.apiFormat,
                   baseUrl: channel.baseUrl,
                   model: channel.model,
                   apiKey: channel.apiKey.trim() ? channel.apiKey.trim() : null,
@@ -148,7 +151,7 @@ export function AdminModelsClient() {
             <div className="field">
               <label>图片接口模式</label>
               <select className="select" value={imageProvider} onChange={(event) => setImageProvider(event.target.value as ImageProvider)}>
-                <option value="sub2api">OpenAI-compatible API Key</option>
+                <option value="sub2api">API Key 渠道（OpenAI-compatible / OpenRouter）</option>
                 <option value="openai_oauth">内置 OpenAI OAuth（实验性）</option>
               </select>
             </div>
@@ -199,6 +202,21 @@ export function AdminModelsClient() {
                       <label>
                         优先级
                         <input type="number" min={1} value={channel.priority} onChange={(event) => updateChannel(channel.id, { priority: Number(event.target.value) })} />
+                      </label>
+                      <label>
+                        接口协议
+                        <select
+                          value={channel.apiFormat}
+                          onChange={(event) => updateChannel(channel.id, { apiFormat: event.target.value as ImageApiFormat })}
+                        >
+                          <option value="openai_compatible">OpenAI-compatible</option>
+                          <option value="openrouter">OpenRouter Image API</option>
+                        </select>
+                        {channel.apiFormat === "openrouter" ? (
+                          <small className="field-hint">
+                            Base URL 填 https://openrouter.ai/api/v1，模型填 openai/gpt-image-2。
+                          </small>
+                        ) : null}
                       </label>
                       <label>
                         Base URL

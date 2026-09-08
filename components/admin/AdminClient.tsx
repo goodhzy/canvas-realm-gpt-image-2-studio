@@ -26,6 +26,7 @@ import clsx from "clsx";
 import type {
   AdminStats,
   CurrentUser,
+  ImageApiFormat,
   ImageProvider,
   PublicAdminSettings,
   PublicImageProviderChannel,
@@ -173,6 +174,7 @@ export function AdminClient() {
             name: "默认 API Key 渠道",
             enabled: true,
             priority: 1,
+            apiFormat: "openai_compatible",
             baseUrl: payload.settings.sub2apiBaseUrl,
             model: payload.settings.imageModel,
             apiKeyConfigured: payload.settings.sub2apiApiKeyConfigured,
@@ -398,6 +400,7 @@ export function AdminClient() {
           name: string;
           enabled: boolean;
           priority: number;
+          apiFormat: ImageApiFormat;
           baseUrl: string;
           model: string;
           apiKey?: string | null;
@@ -431,6 +434,7 @@ export function AdminClient() {
           name: channel.name,
           enabled: channel.enabled,
           priority: channel.priority,
+          apiFormat: channel.apiFormat,
           baseUrl: channel.baseUrl,
           model: channel.model,
           apiKey: channel.apiKey.trim() ? channel.apiKey.trim() : null,
@@ -632,6 +636,7 @@ export function AdminClient() {
         name: `备用渠道 ${current.length + 1}`,
         enabled: true,
         priority: current.length + 1,
+        apiFormat: current[0]?.apiFormat || "openai_compatible",
         baseUrl: baseUrl || "https://s2a.laolin.ai/v1",
         model: imageModel || "gpt-image-2",
         apiKeyConfigured: false,
@@ -1349,7 +1354,7 @@ export function AdminClient() {
                   value={imageProvider}
                   onChange={(event) => setImageProvider(event.target.value as ImageProvider)}
                 >
-                  <option value="sub2api">sub2api / OpenAI-compatible API Key</option>
+                  <option value="sub2api">API Key 渠道（OpenAI-compatible / OpenRouter）</option>
                   <option value="openai_oauth">内置 OpenAI OAuth（实验性）</option>
                 </select>
               </div>
@@ -1400,6 +1405,22 @@ export function AdminClient() {
                               value={channel.priority}
                               onChange={(event) => updateProviderChannel(channel.id, { priority: Number(event.target.value) })}
                             />
+                          </div>
+                          <div className="field">
+                            <label>接口协议</label>
+                            <select
+                              className="select"
+                              value={channel.apiFormat}
+                              onChange={(event) => updateProviderChannel(channel.id, { apiFormat: event.target.value as ImageApiFormat })}
+                            >
+                              <option value="openai_compatible">OpenAI-compatible</option>
+                              <option value="openrouter">OpenRouter Image API</option>
+                            </select>
+                            {channel.apiFormat === "openrouter" ? (
+                              <small className="field-hint">
+                                Base URL 填 https://openrouter.ai/api/v1，模型填 openai/gpt-image-2。
+                              </small>
+                            ) : null}
                           </div>
                           <div className="field">
                             <label>Base URL</label>

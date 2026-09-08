@@ -134,9 +134,12 @@ flowchart LR
 | 模式 | 状态 | 说明 |
 | --- | --- | --- |
 | sub2api / OpenAI-compatible API Key | 推荐 | 使用 `Authorization: Bearer <API Key>` 调用兼容图片接口 |
+| OpenRouter Image API | 推荐 | 后台选择 OpenRouter 协议，支持 `openai/gpt-image-2` 文生图和图生图 |
 | 内置 OpenAI OAuth | 实验性 | 参考 Codex OAuth + PKCE 流程，服务端加密保存 token |
 
 内置 OAuth 支持在后台配置 `http://`、`https://`、`socks5://`、`socks5h://` 代理，用于服务端 token 交换、刷新和图片请求。
+
+OpenRouter 可直接在 `后台管理 -> 模型设置` 配置：图片接口模式选“API Key 渠道”，接口协议选“OpenRouter Image API”，Base URL 填 `https://openrouter.ai/api/v1`，模型填 `openai/gpt-image-2`，再填写 OpenRouter API Key 并保存。
 
 ### 快速开始
 
@@ -326,9 +329,12 @@ Canvas features:
 | Mode | Status | Notes |
 | --- | --- | --- |
 | sub2api / OpenAI-compatible API Key | Recommended | Calls image endpoints with `Authorization: Bearer <API Key>` |
+| OpenRouter Image API | Recommended | Select the OpenRouter protocol in admin for `openai/gpt-image-2` text-to-image and image-to-image |
 | Built-in OpenAI OAuth | Experimental | Stores encrypted tokens server-side and follows a Codex-style OAuth + PKCE flow |
 
 The OAuth connector supports optional `http://`, `https://`, `socks5://` and `socks5h://` proxies for token exchange, token refresh and image requests.
+
+To use OpenRouter, go to `Admin -> Model settings`, select the API-key provider mode and `OpenRouter Image API`, set the Base URL to `https://openrouter.ai/api/v1`, set the model to `openai/gpt-image-2`, enter the OpenRouter API key, and save.
 
 ### Stack
 

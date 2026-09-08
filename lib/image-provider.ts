@@ -18,15 +18,17 @@ import {
   tokenExpiresAt,
 } from "./openai-oauth";
 import { extractOpenAIOAuthImagesFromResponsesStream } from "./openai-image-bridge";
+import { buildOpenRouterImageRequestBody, openRouterImageEndpoint } from "./openrouter-image";
 import { formatModelError } from "./model-error";
 import { fetchWithOptionalProxy } from "./proxy";
-import type { GenerationTaskRow, ImageProvider, OpenAIOAuthAccountRow } from "./types";
+import type { GenerationTaskRow, ImageApiFormat, ImageProvider, OpenAIOAuthAccountRow } from "./types";
 import { assertSupportedImage, assertSupportedImageBytes, mimeFromFileName, readStorageFile } from "./storage";
 
 interface ImageApiItem {
   b64_json?: string;
   url?: string;
   mimeType?: string | null;
+  media_type?: string | null;
 }
 
 interface ImageApiResponse {
@@ -40,6 +42,7 @@ const openAICodexUserAgent = "codex_cli_rs/0.125.0";
 
 interface ImageRequestSettings {
   provider: ImageProvider;
+  apiFormat: ImageApiFormat;
   channelId?: string;
   channelName?: string;
   baseUrl: string;
@@ -128,6 +131,7 @@ async function resolveImageProviderCandidates(signal?: AbortSignal): Promise<Ima
     const accessToken = await getFreshOpenAIAccessToken(account, settings.openaiOAuthProxyUrl, signal);
     return [{
       provider: "openai_oauth",
+      apiFormat: "openai_compatible",
       channelId: account.id,
       channelName: account.email ?? "OpenAI OAuth",
       baseUrl: appConfig.openaiOAuthApiBaseUrl.replace(/\/+$/, ""),
@@ -151,6 +155,7 @@ async function resolveImageProviderCandidates(signal?: AbortSignal): Promise<Ima
         name: "默认 API Key 渠道",
         enabled: true,
         priority: 999,
+        apiFormat: "openai_compatible" as const,
         baseUrl: settings.sub2apiBaseUrl,
         model: settings.imageModel,
         apiKey: settings.sub2apiApiKey,
@@ -162,6 +167,7 @@ async function resolveImageProviderCandidates(signal?: AbortSignal): Promise<Ima
   const resolvedChannels = channels.length > 0 ? channels : fallbackChannel;
   return resolvedChannels.map((channel) => ({
     provider: "sub2api" as const,
+    apiFormat: channel.apiFormat,
     channelId: channel.id,
     channelName: channel.name,
     baseUrl: channel.baseUrl.replace(/\/+$/, ""),
@@ -218,6 +224,10 @@ async function requestTextToImage(
     return requestOpenAIOAuthImage(task, [], settings, signal);
   }
 
+  if (settings.apiFormat === "openrouter") {
+    return requestOpenRouterImage(task, [], settings, quantity, signal);
+  }
+
   const body: Record<string, string | number> = {
     model: settings.imageModel,
     prompt: buildPrompt(task),
@@ -258,6 +268,10 @@ async function requestImageEdit(
     throw new Error("缺少参考图，无法调用图片编辑接口");
   }
 
+  if (settings.apiFormat === "openrouter") {
+    return requestOpenRouterImage(task, sourceImagePaths, settings, quantity, signal);
+  }
+
   const form = new FormData();
   form.append("model", settings.imageModel);
   for (const sourceImagePath of sourceImagePaths) {
@@ -284,6 +298,46 @@ async function requestImageEdit(
   });
 
   return readModelResponse(response, "image edit failed", settings);
+}
+
+async function requestOpenRouterImage(
+  task: GenerationTaskRow,
+  sourceImagePaths: string[],
+  settings: ImageRequestSettings,
+  quantity: number,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  const inputReferences = await Promise.all(
+    sourceImagePaths.map(async (sourceImagePath) => {
+      const source = await readStorageFile(sourceImagePath);
+      return {
+        type: "image_url" as const,
+        image_url: {
+          url: `data:${source.mimeType};base64,${Buffer.from(source.bytes).toString("base64")}`,
+        },
+      };
+    }),
+  );
+
+  const body = buildOpenRouterImageRequestBody({
+    model: settings.imageModel,
+    prompt: buildPrompt(task),
+    quantity,
+    size: apiSizeForOption(task.size),
+    inputReferences,
+  });
+  const response = await fetch(openRouterImageEndpoint(settings.baseUrl), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${settings.bearerToken}`,
+      "Content-Type": "application/json",
+      "User-Agent": IMAGE_USER_AGENT,
+    },
+    body: JSON.stringify(body),
+    signal: requestSignal(signal),
+  });
+
+  return readModelResponse(response, "OpenRouter image generation failed", settings);
 }
 
 async function requestOpenAIOAuthImage(
@@ -429,7 +483,7 @@ async function materializeImageItem(item: ImageApiItem, signal?: AbortSignal): P
     }
     return {
       bytes,
-      mimeType: item.mimeType || "image/png",
+      mimeType: item.mimeType || item.media_type || "image/png",
     };
   }
 

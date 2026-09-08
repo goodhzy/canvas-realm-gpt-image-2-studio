@@ -2,6 +2,7 @@ import { z } from "zod";
 import { sizeOptions } from "./image-options";
 import {
   generationModes,
+  imageApiFormats,
   imageConcurrencyLimits,
   imageProviders,
   taskStatuses,
@@ -153,6 +154,7 @@ export const updateAdminSettingsSchema = z.object({
         name: z.string().trim().min(1, "渠道名称不能为空").max(60),
         enabled: z.boolean().default(true),
         priority: z.coerce.number().int().min(1).max(1000),
+        apiFormat: z.enum(imageApiFormats).default("openai_compatible"),
         baseUrl: z.string().trim().url("渠道 Base URL 格式不正确").max(300),
         model: z.string().trim().min(1, "渠道模型不能为空").max(100),
         apiKey: z.string().trim().max(500).nullable().optional(),

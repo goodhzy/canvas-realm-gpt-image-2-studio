@@ -1304,6 +1304,9 @@ function normalizeProviderChannel(value: unknown, fallbackIndex: number): ImageP
 
   const now = nowIso();
   const priority = Number(record.priority);
+  const apiFormat = record.apiFormat === "openrouter" || baseUrl.includes("openrouter.ai/")
+    ? "openrouter"
+    : "openai_compatible";
   return {
     id: typeof record.id === "string" && record.id.trim() ? record.id.trim() : createId("chn"),
     name:
@@ -1312,6 +1315,7 @@ function normalizeProviderChannel(value: unknown, fallbackIndex: number): ImageP
         : `模型渠道 ${fallbackIndex + 1}`,
     enabled: record.enabled !== false,
     priority: Number.isFinite(priority) ? Math.max(1, Math.floor(priority)) : fallbackIndex + 1,
+    apiFormat,
     baseUrl,
     model,
     apiKey,
@@ -1333,6 +1337,7 @@ function singleProviderChannelFromLegacySettings(): ImageProviderChannel | null 
     name: "默认 API Key 渠道",
     enabled: true,
     priority: 1,
+    apiFormat: baseUrl.includes("openrouter.ai/") ? "openrouter" : "openai_compatible",
     baseUrl: baseUrl.replace(/\/+$/, ""),
     model,
     apiKey,
@@ -1370,6 +1375,7 @@ export function toPublicImageProviderChannel(channel: ImageProviderChannel): Pub
     name: channel.name,
     enabled: channel.enabled,
     priority: channel.priority,
+    apiFormat: channel.apiFormat,
     baseUrl: channel.baseUrl,
     model: channel.model,
     apiKeyConfigured: channel.apiKey.length > 0,
@@ -1384,6 +1390,7 @@ export function saveImageProviderChannels(
     name: string;
     enabled: boolean;
     priority: number;
+    apiFormat?: ImageProviderChannel["apiFormat"];
     baseUrl: string;
     model: string;
     apiKey?: string | null;
@@ -1402,6 +1409,7 @@ export function saveImageProviderChannels(
           name: item.name,
           enabled: item.enabled,
           priority: item.priority,
+          apiFormat: item.apiFormat,
           baseUrl: item.baseUrl,
           model: item.model,
           apiKey,
